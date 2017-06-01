@@ -7,6 +7,7 @@ CONFIG_DIR = os.path.join(ROOT, '.configfiles')
 LOG_CONFIGFILE = os.path.join(CONFIG_DIR, 'local_logs_config.ini')
 LOGS_DIR = os.path.join(ROOT, 'logs')
 API_LOGS = os.path.join(ROOT, 'apilogs')
+CELERY_CONFIG = os.path.join(CONFIG_DIR, 'celery_config.py')
 
 YML_FILE = os.path.join(CONFIG_DIR, 'config.yml')
 s = Setup(yml_file=YML_FILE)

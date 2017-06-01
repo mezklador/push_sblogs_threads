@@ -7,14 +7,15 @@ import sys
 from time import time
 
 from tools.config import (
-    API_LOGS,
-    LOG_CONFIGFILE,
     LOGS_DIR,
     LOGFILE_URL
 )
 from tools.logger import Logger
 
 from celery import Celery
+from celery.decorators import periodic_task
+from celery.schedules import crontab
+from celery.utils.log import get_task_logger
 import requests
 
 '''
@@ -24,12 +25,14 @@ logging.config.fileConfig(LOG_CONFIGFILE,
 logger = logging.getLogger(__name__)
 '''
 logger = Logger('downloads/timeline.log')
+cel_logger = get_task_logger(__name__)
 
 logs_filesize_list = []
 
 app = Celery('dwn',
              broker='redis://localhost:6379/10',
              backend='redis://localhost:6379/10')
+app.conf.timezone = 'Europe/Paris'
 
 verbose = False
 
@@ -54,8 +57,13 @@ def local_logs_files_parser():
 # requests.get(url, stream=True).headers['Content-length'] -> getting filesize of the document
 
 
-@app.task
+@periodic_task(run_every=crontab(minute='*/2'))
 def main(url=LOGFILE_URL):
+    '''
+    Executed every 2 minutes by Celery
+    :param url:
+    :return:
+    '''
     try:
         start = time()
         r = requests.get(url, stream=True)
@@ -80,6 +88,7 @@ def main(url=LOGFILE_URL):
             if r.status_code != 200:
                 msg = r.raise_for_status()
                 logger.warning(f"Bad request: {msg}")
+                cel_logger.warning(f"Bad request: {msg}")
                 sys.exit(1)
 
             content_type = re.sub('[\s+]',
@@ -89,6 +98,7 @@ def main(url=LOGFILE_URL):
                 r.status_code = 500
                 msg = r.raise_for_status()
                 logger.warning(f"Server failure: {msg}")
+                cel_logger.warning(f"Server failure: {msg}")
                 sys.exit(1)
 
             now = datetime.now()
@@ -104,6 +114,9 @@ def main(url=LOGFILE_URL):
             end = time() - start
             final_msg = f"GET: {filename_date}, for {end:04f} sec."
             logger.info(final_msg)
+            cel_logger.info(final_msg)
+            if verbose:
+                print(final_msg)
 
             return final_msg
 
@@ -112,16 +125,19 @@ def main(url=LOGFILE_URL):
     except requests.exceptions.RequestException as e:
         err = f"Bad request: {e}"
         logger.warning(err)
+        cel_logger.warning(err)
         sys.exit(1)
 
     except requests.exceptions.Timeout as tm:
         err = f"Request Timeout: {tm}"
         logger.warning(err)
+        cel_logger.warning(err)
         sys.exit(1)
 
     except requests.exceptions.HTTPError as he:
         err = f"HTTP error: {he}"
         logger.warning(err)
+        cel_logger.warning(err)
         sys.exit(1)
 
 

@@ -1,5 +1,7 @@
 import math
+import os
 
+from tools.config import LOGS_DIR
 from S3.client import LogFiles
 
 s3 = LogFiles()
@@ -10,7 +12,7 @@ def last_S3_file(as_dict=True):
     Returns the last file in AWS S3 Bucket.
     :return: dict|tuple
     '''
-    last = s3.last
+    last = list(s3.last)
     if as_dict:
         return _to_dict(last)
 
@@ -18,18 +20,19 @@ def last_S3_file(as_dict=True):
 
 
 def S3_listing(as_dict=True):
-    all = s3.all
+    all = list(s3.all)
     if as_dict:
         return _to_dict(all)
 
     return all
 
 
-def _to_dict(l):
-    return dict(public_link=l[0],
+def _to_dict(blocks):
+    return [dict(public_link=l[0],
                 date=l[1],
                 uuid=l[2],
-                size=l[3])
+                size=human_filesize(l[3]))
+            for l in blocks]
 
 
 def human_filesize(size):
@@ -40,3 +43,6 @@ def human_filesize(size):
    p = math.pow(1024, i)
    s = round(size / p, 2)
    return f"{s}{size_name[i]}"
+
+def localfiles():
+    return (os.path.join(LOGS_DIR, f) for f in os.listdir(LOGS_DIR))

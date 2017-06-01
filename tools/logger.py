@@ -1,4 +1,4 @@
-import logging
+import logging as Log
 import logging.config
 import os
 
@@ -11,4 +11,4 @@ def Logger(where=""):
                                dests[1])
     logging.config.fileConfig(LOG_CONFIGFILE,
                               defaults={'logfilename': aws_logfile})
-    return logging.getLogger(dests[0])
+    return Log.getLogger(dests[0])
