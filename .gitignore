@@ -97,6 +97,7 @@ ENV/
 # mkdocs documentation
 /site
 
+celerybeat-schedule
 .idea/*
 .configfiles/config.yml
 apilogs/*

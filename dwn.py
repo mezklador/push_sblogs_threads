@@ -12,20 +12,26 @@ from tools.config import (
     LOGS_DIR,
     LOGFILE_URL
 )
+from tools.logger import Logger
 
 from celery import Celery
 import requests
 
+'''
 aws_local_logfile = os.path.join(API_LOGS, 'downloads', 'timeline.log')
 logging.config.fileConfig(LOG_CONFIGFILE,
                           defaults={'logfilename': aws_local_logfile})
 logger = logging.getLogger(__name__)
+'''
+logger = Logger('downloads/timeline.log')
 
 logs_filesize_list = []
 
 app = Celery('dwn',
              broker='redis://localhost:6379/10',
              backend='redis://localhost:6379/10')
+
+verbose = False
 
 
 def check_logs_location():
@@ -65,9 +71,10 @@ def main(url=LOGFILE_URL):
 
         last_log_size = os.stat(last_log).st_size if last_log else 0
 
-        print(last_log)
-        print(f"request file: {nu_filesize} vs. last "
-              f"log size: {last_log_size}")
+        if verbose:
+            print(last_log)
+            print(f"request file: {nu_filesize} vs. last "
+                  f"log size: {last_log_size}")
 
         if nu_filesize > last_log_size or last_log_size < 1:
             if r.status_code != 200:
@@ -119,4 +126,5 @@ def main(url=LOGFILE_URL):
 
 
 if __name__ == '__main__':
+    verbose = True
     main()

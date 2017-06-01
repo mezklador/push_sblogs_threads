@@ -11,15 +11,19 @@ from tools.config import (
     LOG_CONFIGFILE,
     LOGS_DIR,
     AWS_S3_TARGET)
+from tools.logger import Logger
+from tools.utils import human_filesize as hfs
 from S3.client import LogFiles
 
-
+'''
 aws_logfile = os.path.join(API_LOGS,
                            'uploads',
                            'state_of_union.log')
 logging.config.fileConfig(LOG_CONFIGFILE,
                           defaults={'logfilename': aws_logfile})
 logger = logging.getLogger(__name__)
+'''
+logger = Logger('uploads/state_of_union.log')
 
 s3 = LogFiles().Main
 
@@ -30,6 +34,9 @@ filesize_list = []
 app = Celery('aws_upload',
              broker='redis://localhost:6379/10',
              backend='redis://localhost:6379/10')
+
+approved = True
+do_not_remove = False
 
 
 def check_localfile(file):
@@ -54,24 +61,31 @@ def upload_to_s3(local_file,
     aws_filepath = check_localfile(local_file)
     if aws_filepath is not None:
         try:
-            abs_localfile = aws_filepath['abs_path']
+            abs_filepath = aws_filepath['abs_path']
             aws_destination = aws_filepath['destination']
-            s3.upload_file(abs_localfile,
-                           bucket,
-                           aws_destination,
-                           ExtraArgs={'ACL': 'public-read'})
+
+            if approved:
+                s3.upload_file(abs_filepath,
+                               bucket,
+                               aws_destination,
+                               ExtraArgs={'ACL': 'public-read'})
 
             endpoint_url = s3.meta.endpoint_url
             pub_url = f"{endpoint_url}/{bucket}/{aws_destination}"
-            if remove_localfile(aws_filepath['abs_path']):
-                end = time() - start
-                loginfo_string = f"Upload {local_file}, in {end:.4f} sec. " \
-                                 f"to AWS S3: {pub_url}"
-                loginfo(loginfo_string)
+
+            if not do_not_remove:
+                delete_localfiles = remove_file(aws_filepath['abs_path'])
+                if delete_localfiles:
+                    end = time() - start
+                    info_string = f"Upload {local_file}, in {end:.4f} sec. " \
+                                  f"to AWS S3: {pub_url}"
+                    loginfo(info_string)
+                else:
+                    logwarn(f"{local_file} was NOT removed from logs/.")
         except botocore.exceptions.ClientError as e:
             logwarn(f"Problem with S3: {e}")
     else:
-        if remove_localfile(os.path.join(LOGS_DIR, local_file)):
+        if remove_file(os.path.join(LOGS_DIR, local_file)):
             return True
 
     return None
@@ -87,7 +101,7 @@ def logwarn(msg):
     sys.exit(1)
 
 
-def remove_localfile(link):
+def remove_file(link):
     try:
         os.unlink(link)
         return True
@@ -96,11 +110,16 @@ def remove_localfile(link):
 
 
 def parse_local_logfiles(logfiles=os.listdir(LOGS_DIR)):
+    total_filesize = []
     if len(logfiles) > 0:
         for logfile in logfiles:
-            upload_to_s3.delay(logfile)
+            logfile_path = os.path.join(LOGS_DIR, logfile)
+            total_filesize.append(os.stat(logfile_path).st_size)
+            upload_to_s3(logfile)
 
-        return (True, len(logfiles))
+        return (True,
+                len(logfiles),
+                hfs(sum(total_filesize)))
 
     return False
 
@@ -108,6 +127,8 @@ def parse_local_logfiles(logfiles=os.listdir(LOGS_DIR)):
 if __name__ == '__main__':
     action = parse_local_logfiles()
     if action[0]:
-        print(f"{action[1]} logs were send to AWS S3 Bucket.")
+        print(f"{action[1]} logs were send to AWS S3 Bucket.",
+              f"Weight: {action[2]}.",
+              sep='\n')
     else:
         print("Nothing to do or something wrong\nCheck apilogs.")
