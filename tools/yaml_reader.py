@@ -6,6 +6,7 @@ import yaml
 # DUMMY_YML_FILE = os.path.join(CONFIG_DIR, 'config.yml.example')
 DUMMY_YML_FILE = '../.configfiles/config.yml.example'
 
+
 class Setup:
 
     def __init__(self, yml_file=DUMMY_YML_FILE):

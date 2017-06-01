@@ -20,7 +20,7 @@ echo "$VENV_EXE" | cat - dwn_logs.py > temp && mv temp dwn_logs.py
 echo "Making those 2 scripts executable."
 '
 
-for MAIN_FILE in {aws_upload,dwn}.py
+for MAIN_FILE in {aws_upload,dwn,executioner}.py
 do
     echo "Adding $ECHO_VENV line on $MAIN_FILE script."
     #sed -i -e "1s/$VENV_EXE\n\n/" "dwn_sb_logs.py"

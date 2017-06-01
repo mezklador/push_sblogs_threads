@@ -31,17 +31,21 @@ app = Celery('aws_upload',
              broker='redis://localhost:6379/10',
              backend='redis://localhost:6379/10')
 
+
 def check_localfile(file):
     localfile = os.path.join(LOGS_DIR, file)
     localfile_size = os.stat(localfile).st_size
 
     if localfile_size not in filesize_list:
         filesize_list.append(localfile_size)
-        f_name = localfile.split('/')[-1] # get the filename only
+
+        # get the filename only
+        f_name = localfile.split('/')[-1]
         return dict(destination=f"{BUCKET_DESTINATION}/{f_name}",
                     abs_path=localfile)
 
     return None
+
 
 @app.task
 def upload_to_s3(local_file,
@@ -72,13 +76,16 @@ def upload_to_s3(local_file,
 
     return None
 
+
 def loginfo(msg):
     logger.info(msg)
     return True
 
+
 def logwarn(msg):
     logger.warning(msg)
     sys.exit(1)
+
 
 def remove_localfile(link):
     try:
@@ -86,6 +93,7 @@ def remove_localfile(link):
         return True
     except:
         return False
+
 
 def parse_local_logfiles(logfiles=os.listdir(LOGS_DIR)):
     if len(logfiles) > 0:
@@ -95,6 +103,7 @@ def parse_local_logfiles(logfiles=os.listdir(LOGS_DIR)):
         return (True, len(logfiles))
 
     return False
+
 
 if __name__ == '__main__':
     action = parse_local_logfiles()

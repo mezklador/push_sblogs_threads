@@ -70,24 +70,17 @@ class LogFiles:
                     size=log[3])
 
     @property
-    def all(self, as_list=True):
-        sodabar_logs = self._get_logs()
-        if as_list:
-            return list(sodabar_logs)
-
-        return sodabar_logs
+    def all(self):
+        return self._get_logs()
 
     @property
-    def last(self, as_dict=True):
-        last_log = self.all()[-1]
-        if as_dict:
-            return self._dict_display(last_log)
-
+    def last(self):
+        last_log = self.all[-1]
         return last_log
 
     @property
     def first(self, as_dict=True):
-            first_log = self.all()[0]
+            first_log = self.all[0]
             if as_dict:
                 return self._dict_display(first_log)
 

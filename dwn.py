@@ -38,14 +38,15 @@ def check_logs_location():
 def local_logs_files_parser():
     logs = os.listdir(LOGS_DIR)
     if len(logs) > 0:
-        logs_filesize_list.append([os.stat(os.path.join(LOGS_DIR, log)).st_size for log in logs])
+        logs_filesize_list.append([os.stat(os.path.join(LOGS_DIR, log)).st_size
+                                   for log in logs])
         return logs
 
     return None
 
-
 # FROM: https://stackoverflow.com/questions/14270698/get-file-size-using-python-requests-while-only-getting-the-header#answer-44299915
 # requests.get(url, stream=True).headers['Content-length'] -> getting filesize of the document
+
 
 @app.task
 def main(url=LOGFILE_URL):
@@ -63,8 +64,11 @@ def main(url=LOGFILE_URL):
             last_log = False
 
         last_log_size = os.stat(last_log).st_size if last_log else 0
+
         print(last_log)
-        print(f"request file: {nu_filesize} vs. last log size: {last_log_size}")
+        print(f"request file: {nu_filesize} vs. last "
+              f"log size: {last_log_size}")
+
         if nu_filesize > last_log_size or last_log_size < 1:
             if r.status_code != 200:
                 msg = r.raise_for_status()
