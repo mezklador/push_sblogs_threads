@@ -1,4 +1,3 @@
-import argparse
 from datetime import datetime
 import logging
 import logging.config
@@ -14,6 +13,7 @@ from tools.config import (
     LOGFILE_URL
 )
 
+from celery import Celery
 import requests
 
 aws_local_logfile = os.path.join(API_LOGS, 'downloads', 'timeline.log')
@@ -22,6 +22,10 @@ logging.config.fileConfig(LOG_CONFIGFILE,
 logger = logging.getLogger(__name__)
 
 logs_filesize_list = []
+
+app = Celery('dwn',
+             broker='redis://localhost:6379/10',
+             backend='redis://localhost:6379/10')
 
 
 def check_logs_location():
@@ -43,6 +47,7 @@ def local_logs_files_parser():
 # FROM: https://stackoverflow.com/questions/14270698/get-file-size-using-python-requests-while-only-getting-the-header#answer-44299915
 # requests.get(url, stream=True).headers['Content-length'] -> getting filesize of the document
 
+@app.task
 def main(url=LOGFILE_URL):
     try:
         start = time()
@@ -86,9 +91,12 @@ def main(url=LOGFILE_URL):
                     f.write(data)
 
             end = time() - start
-            final_msg = f"Send to logs/: {filename_date}, for {end:04f} sec."
+            final_msg = f"GET: {filename_date}, for {end:04f} sec."
             logger.info(final_msg)
 
+            return final_msg
+
+        return None
 
     except requests.exceptions.RequestException as e:
         err = f"Bad request: {e}"
