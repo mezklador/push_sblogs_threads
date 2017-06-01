@@ -1,0 +1,17 @@
+redis:
+    # DON'T FORGET TO CHANGE ANYTHING, IN CASE OF ANOTHER CONFIGURATION
+    host: 127.0.0.1
+    port: 6759
+    db: 0
+    channel: aws_sb_logs
+
+aws:
+    # YOU HAVE TO TYPE YOUR AWS CREDENTIALS & LOCATIONS
+    client: 'FAKE_AWS_CLIENT_KEY'
+    secret: 'FAKE_CLIENT_SECRET_KEY'
+    region: 'us-east-2'
+    endpoint: 'https://s3.us-east-1.amazonaws.com'
+    target: 'BUCKET_NAME'
+
+misc:
+    logfile_url: 'https://your-domain-to-request/logs/the_file.log'
