@@ -7,6 +7,7 @@ from tools.config import (
 )
 
 import boto3
+import itertools
 import os
 import re
 
@@ -64,24 +65,39 @@ class LogFiles:
             return False
 
     def _dict_display(self, log):
-        return dict(public_link=log[0],
-                    date=log[1],
-                    uuid=log[2],
-                    size=log[3])
+        a = ()
+        for l in log:
+            a = a + (dict(public_link=l[0],
+                          date=l[1],
+                          uuid=l[2],
+                          size=l[3]),)
+        return a
+
+    @staticmethod
+    def _get_from_generator(gen, depth=1, inverted=False):
+        t = gen
+        if inverted:
+            t = list(reversed(t))
+        t = tuple(t)
+        return t[:depth]
 
     @property
     def all(self):
-        return self._get_logs()
+        return list(self._get_logs())
 
-    @property
-    def last(self):
-        last_log = self.all[-1]
+    def last(self, depth=1, as_dict=False):
+        last_log = self._get_from_generator(self.all,
+                                            depth=depth,
+                                            inverted=True)
+        if as_dict:
+            return self._dict_display(last_log)
+
         return last_log
 
-    @property
-    def first(self, as_dict=True):
-            first_log = self.all[0]
+    def first(self, depth=1, as_dict=False):
+            first_log = self._get_from_generator(self.all,
+                                                 depth=depth)
             if as_dict:
                 return self._dict_display(first_log)
-
+            
             return first_log
