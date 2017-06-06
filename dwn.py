@@ -15,9 +15,9 @@ from tools.logger import Logger
 import celery_config
 
 from celery import Celery
-from celery.decorators import periodic_task
-from celery.schedules import crontab
-# from celery.signals import setup_logging
+# from celery.decorators import periodic_task
+# from celery.schedules import crontab
+from celery.signals import setup_logging
 from celery.utils.log import get_task_logger
 import requests
 
@@ -28,6 +28,15 @@ logging.config.fileConfig(LOG_CONFIGFILE,
 logger = logging.getLogger(__name__)
 '''
 # logger = Logger('downloads/timeline.log')
+
+def initialize_logging(**kwargs):
+    logging.basicConfig(filename='apilogs/downloads/celery.log',
+                        format="%(asctime)s ~ %(levelname)s: %(message)s",
+                        datefmt="%d/%m/%Y %H:%M:%S",
+                        level=logging.WARNING)
+    return logging.getLogger(__name__)
+
+setup_logging.connect(initialize_logging)
 cel_logger = get_task_logger(__name__)
 
 logs_filesize_list = []
@@ -68,11 +77,10 @@ def main(url=LOGFILE_URL, celery_callback=None):
     :param url:
     :return:
     '''
-    # if celery_callback:
-    #     # after_setup_logger.connect(Logger('downloads/timeline.log'))
-    #     logger = get_task_logger(__name__)
-    # else:
-    #     logger = Logger('downloads/timeline.log')
+    if celery_callback:
+        logger = get_task_logger(__name__)
+    else:
+        logger = Logger('downloads/timeline.log')
     try:
         start = time()
         r = requests.get(url, stream=True)
@@ -96,8 +104,8 @@ def main(url=LOGFILE_URL, celery_callback=None):
         if nu_filesize > last_log_size or last_log_size < 1:
             if r.status_code != 200:
                 msg = r.raise_for_status()
-                # logger.warning(f"Bad request: {msg}")
-                cel_logger.warning(f"Bad request: {msg}")
+                logger.critical(f"Bad request: {msg}")
+                # cel_logger.warning(f"Bad request: {msg}")
                 sys.exit(1)
 
             content_type = re.sub('[\s+]',
@@ -106,8 +114,8 @@ def main(url=LOGFILE_URL, celery_callback=None):
             if content_type != 'text/plain':
                 r.status_code = 500
                 msg = r.raise_for_status()
-                # logger.warning(f"Server failure: {msg}")
-                cel_logger.warning(f"Server failure: {msg}")
+                logger.critical(f"Server failure: {msg}")
+                # cel_logger.warning(f"Server failure: {msg}")
                 sys.exit(1)
 
             now = datetime.now()
@@ -121,9 +129,9 @@ def main(url=LOGFILE_URL, celery_callback=None):
                     f.write(data)
 
             end = time() - start
-            final_msg = f"GET: {filename_date}, for {end:04f} sec."
-            # logger.info(final_msg)
-            cel_logger.info(final_msg)
+            final_msg = f"[GET:{filename_date}], duration:{end:04f} sec."
+            logger.warning(final_msg)
+            # cel_logger.info(final_msg)
             if verbose:
                 print(final_msg)
 
@@ -133,20 +141,20 @@ def main(url=LOGFILE_URL, celery_callback=None):
 
     except requests.exceptions.RequestException as e:
         err = f"Bad request: {e}"
-        # logger.warning(err)
-        cel_logger.warning(err)
+        logger.critical(err)
+        # cel_logger.warning(err)
         sys.exit(1)
 
     except requests.exceptions.Timeout as tm:
         err = f"Request Timeout: {tm}"
-        # logger.warning(err)
-        cel_logger.warning(err)
+        logger.critical(err)
+        # cel_logger.warning(err)
         sys.exit(1)
 
     except requests.exceptions.HTTPError as he:
         err = f"HTTP error: {he}"
-        # logger.warning(err)
-        cel_logger.warning(err)
+        logger.critical(err)
+        # cel_logger.warning(err)
         sys.exit(1)
 
 

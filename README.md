@@ -1,8 +1,8 @@
-1. for **dwn.py**: 
-```
-celery -A dwn worker -B --loglevel=info
+1. for **dwn.py**: getting task done (download distant log file here) & write a log message (success/error) into *apilogs/downloads/celery.log*.
+```bash
+$ celery -A dwn worker --beat
 ```
 2. for **aws_uploads.py**:
-```python
-celery -A aws_uploads worker -B --loglevel=info
+```bash
+$ celery -A aws_uploads worker --beat
 ```
