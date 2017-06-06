@@ -7,14 +7,17 @@ import sys
 from time import time
 
 from tools.config import (
+    CELERY_CONFIG,
     LOGS_DIR,
     LOGFILE_URL
 )
 from tools.logger import Logger
+import celery_config
 
 from celery import Celery
 from celery.decorators import periodic_task
 from celery.schedules import crontab
+# from celery.signals import setup_logging
 from celery.utils.log import get_task_logger
 import requests
 
@@ -24,17 +27,20 @@ logging.config.fileConfig(LOG_CONFIGFILE,
                           defaults={'logfilename': aws_local_logfile})
 logger = logging.getLogger(__name__)
 '''
-logger = Logger('downloads/timeline.log', name=__name__)
+# logger = Logger('downloads/timeline.log')
 cel_logger = get_task_logger(__name__)
 
 logs_filesize_list = []
 
-app = Celery('dwn',
-             broker='redis://localhost:6379/10',
-             backend='redis://localhost:6379/10')
-app.conf.timezone = 'Europe/Paris'
+app = Celery('dwn')
+app.config_from_object(celery_config)
+# app.conf.timezone = 'Europe/Paris'
 
 verbose = False
+
+'''
+###############################################################
+'''
 
 
 def check_logs_location():
@@ -56,14 +62,17 @@ def local_logs_files_parser():
 # FROM: https://stackoverflow.com/questions/14270698/get-file-size-using-python-requests-while-only-getting-the-header#answer-44299915
 # requests.get(url, stream=True).headers['Content-length'] -> getting filesize of the document
 
-
-@periodic_task(run_every=crontab(minute='*/2'))
-def main(url=LOGFILE_URL):
+def main(url=LOGFILE_URL, celery_callback=None):
     '''
     Executed every 2 minutes by Celery
     :param url:
     :return:
     '''
+    # if celery_callback:
+    #     # after_setup_logger.connect(Logger('downloads/timeline.log'))
+    #     logger = get_task_logger(__name__)
+    # else:
+    #     logger = Logger('downloads/timeline.log')
     try:
         start = time()
         r = requests.get(url, stream=True)
@@ -87,7 +96,7 @@ def main(url=LOGFILE_URL):
         if nu_filesize > last_log_size or last_log_size < 1:
             if r.status_code != 200:
                 msg = r.raise_for_status()
-                logger.warning(f"Bad request: {msg}")
+                # logger.warning(f"Bad request: {msg}")
                 cel_logger.warning(f"Bad request: {msg}")
                 sys.exit(1)
 
@@ -97,7 +106,7 @@ def main(url=LOGFILE_URL):
             if content_type != 'text/plain':
                 r.status_code = 500
                 msg = r.raise_for_status()
-                logger.warning(f"Server failure: {msg}")
+                # logger.warning(f"Server failure: {msg}")
                 cel_logger.warning(f"Server failure: {msg}")
                 sys.exit(1)
 
@@ -113,7 +122,7 @@ def main(url=LOGFILE_URL):
 
             end = time() - start
             final_msg = f"GET: {filename_date}, for {end:04f} sec."
-            logger.info(final_msg)
+            # logger.info(final_msg)
             cel_logger.info(final_msg)
             if verbose:
                 print(final_msg)
@@ -124,21 +133,27 @@ def main(url=LOGFILE_URL):
 
     except requests.exceptions.RequestException as e:
         err = f"Bad request: {e}"
-        logger.warning(err)
+        # logger.warning(err)
         cel_logger.warning(err)
         sys.exit(1)
 
     except requests.exceptions.Timeout as tm:
         err = f"Request Timeout: {tm}"
-        logger.warning(err)
+        # logger.warning(err)
         cel_logger.warning(err)
         sys.exit(1)
 
     except requests.exceptions.HTTPError as he:
         err = f"HTTP error: {he}"
-        logger.warning(err)
+        # logger.warning(err)
         cel_logger.warning(err)
         sys.exit(1)
+
+
+# @periodic_task(run_every=crontab(minute='*/2'))
+@app.task
+def main_task():
+    main(celery_callback=True)
 
 
 if __name__ == '__main__':

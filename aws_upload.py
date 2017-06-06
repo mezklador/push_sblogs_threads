@@ -15,14 +15,7 @@ from tools.logger import Logger
 from tools.utils import human_filesize as hfs
 from S3.client import LogFiles
 
-'''
-aws_logfile = os.path.join(API_LOGS,
-                           'uploads',
-                           'state_of_union.log')
-logging.config.fileConfig(LOG_CONFIGFILE,
-                          defaults={'logfilename': aws_logfile})
-logger = logging.getLogger(__name__)
-'''
+
 logger = Logger('uploads/state_of_union.log')
 
 s3 = LogFiles().Main

@@ -13,4 +13,5 @@ def Logger(where="", name=None):
                               defaults={'logfilename': aws_logfile})
     if name is None:
         name = dests[0]
+
     return Log.getLogger(name)
