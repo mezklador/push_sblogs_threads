@@ -24,7 +24,7 @@ logging.config.fileConfig(LOG_CONFIGFILE,
                           defaults={'logfilename': aws_local_logfile})
 logger = logging.getLogger(__name__)
 '''
-logger = Logger('downloads/timeline.log')
+logger = Logger('downloads/timeline.log', name=__name__)
 cel_logger = get_task_logger(__name__)
 
 logs_filesize_list = []

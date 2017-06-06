@@ -85,6 +85,10 @@ class LogFiles:
     def all(self):
         return list(self._get_logs())
 
+    @property
+    def count(self):
+        return len(self.all)
+
     def last(self, depth=1, as_dict=False):
         last_log = self._get_from_generator(self.all,
                                             depth=depth,
