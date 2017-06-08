@@ -1,11 +1,14 @@
 import botocore
 from celery import Celery
+from celery.signals import setup_logging
+from celery.utils.log import get_task_logger
 import logging
 import logging.config
 import os
 import sys
 from time import time
 
+import celery_config
 from tools.config import (
     API_LOGS,
     LOG_CONFIGFILE,
@@ -13,10 +16,11 @@ from tools.config import (
     AWS_S3_TARGET)
 from tools.logger import Logger
 from tools.utils import human_filesize as hfs
+from tools.utils import init_log
 from S3.client import LogFiles
 
 
-logger = Logger('uploads/state_of_union.log')
+# logger = Logger('uploads/state_of_union.log')
 
 s3 = LogFiles().Main
 
@@ -24,9 +28,11 @@ BUCKET_DESTINATION = "sb_logs"
 
 filesize_list = []
 
-app = Celery('aws_upload',
-             broker='redis://localhost:6379/10',
-             backend='redis://localhost:6379/10')
+app = Celery('aws_upload')
+app.config_from_object(celery_config)
+
+setup_logging.connect(init_log)
+logger = get_task_logger(__name__)
 
 approved = True
 do_not_remove = False

@@ -12,6 +12,7 @@ from tools.config import (
     LOGFILE_URL
 )
 from tools.logger import Logger
+from tools.utils import init_log
 import celery_config
 
 from celery import Celery
@@ -37,7 +38,7 @@ def initialize_logging(**kwargs):
     return logging.getLogger(__name__)
 
 setup_logging.connect(initialize_logging)
-cel_logger = get_task_logger(__name__)
+# cel_logger = get_task_logger(__name__)
 
 logs_filesize_list = []
 

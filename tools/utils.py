@@ -1,7 +1,8 @@
+import logging
 import math
 import os
 
-from tools.config import LOGS_DIR
+from tools.config import LOGS_DIR, API_LOGS
 from S3.client import LogFiles
 
 s3 = LogFiles()
@@ -46,3 +47,11 @@ def human_filesize(size):
 
 def localfiles():
     return (os.path.join(LOGS_DIR, f) for f in os.listdir(LOGS_DIR))
+
+def init_log(**kwargs):
+    dest = os.path.join(API_LOGS, 'downloads', 'celery.log')
+    logging.basicConfig(filename=dest,
+                        format="%(asctime)s ~ %(levelname)s: %(message)s",
+                        datefmt="%d/%m/%Y %H:%M:%S",
+                        level=logging.WARNING)
+    return logging.getLogger(__name__)
